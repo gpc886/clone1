@@ -1098,10 +1098,10 @@ export default function Game({ gameMode, questionType, onBack }: GameProps) {
           <Card className="shadow-2xl">
             <CardHeader>
               <CardTitle className="text-3xl text-center">
-                {gameMode === 'single' ? '单人模式' : gameMode === 'ladder' ? '天梯赛模式' : '双人PK模式'}
+                {gameMode === 'single' ? '单人模式' : '双人PK模式'}
               </CardTitle>
               <CardDescription className="text-center text-lg">
-                {gameMode === 'ladder' ? '判断题' : getQuestionTypeName(questionType)}
+                {getQuestionTypeName(questionType)}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -1111,20 +1111,6 @@ export default function Game({ gameMode, questionType, onBack }: GameProps) {
                   <p className="text-amber-700 dark:text-amber-300">
                     双人PK模式限时40秒，答对题目可以让小动物加速！
                   </p>
-                </div>
-              )}
-
-              {gameMode === 'ladder' && (
-                <div className="p-4 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg">
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">🎯 天梯赛说明</p>
-                  <ul className="text-emerald-700 dark:text-emerald-300 space-y-1 text-sm">
-                    <li>• 答对进入下一层，答错退回前一层（最低第1层）</li>
-                    <li>• 左篮筐代表正确，右篮筐代表错误</li>
-                    <li>• 拖拽蓝色轨迹线调整方向，点击屏幕可快速定位</li>
-                    <li>• 发射力度固定，只需调整投篮方向</li>
-                    <li>• 未投进篮筐会自动重置，可重新投掷</li>
-                    <li>• 越到高层题目难度越大，加油！</li>
-                  </ul>
                 </div>
               )}
 
