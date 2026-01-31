@@ -3,8 +3,9 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { BookOpen, Users, Clock, Trophy, PenTool, Scroll, Target } from 'lucide-react';
+import { BookOpen, Users, Clock, Trophy, PenTool, Scroll, Target, Upload, Database } from 'lucide-react';
 import Game from '@/components/Game';
+import ImportQuestions from '@/components/ImportQuestions';
 import type { QuestionType } from '@/lib/questions';
 
 type GameMode = 'single' | 'multi' | 'ladder' | null;
@@ -13,6 +14,7 @@ export default function Home() {
   const [gameMode, setGameMode] = useState<GameMode>(null);
   const [questionType, setQuestionType] = useState<QuestionType | null>(null);
   const [startGame, setStartGame] = useState(false);
+  const [showImportDialog, setShowImportDialog] = useState(false);
 
   // 返回主菜单
   const handleBackToMenu = () => {
@@ -24,6 +26,12 @@ export default function Home() {
   // 开始游戏
   const handleStartGame = () => {
     setStartGame(true);
+  };
+
+  // 刷新页面以重新加载题库
+  const handleImportSuccess = () => {
+    setShowImportDialog(false);
+    // 可选：显示成功提示
   };
 
   // 游戏界面
@@ -110,13 +118,25 @@ export default function Home() {
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 dark:from-gray-900 dark:via-purple-900 dark:to-blue-900 flex items-center justify-center p-4">
         <div className="max-w-5xl w-full">
           {/* 标题 */}
-          <div className="text-center mb-12">
+          <div className="text-center mb-8">
             <h1 className="text-5xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-4">
               高中语文基础知识挑战
             </h1>
             <p className="text-lg text-gray-600 dark:text-gray-300">
               考察文言文、成语、古诗词等知识点，挑战自我，争当学霸
             </p>
+          </div>
+
+          {/* 操作按钮区 */}
+          <div className="flex justify-center gap-4 mb-8">
+            <Button
+              onClick={() => setShowImportDialog(true)}
+              variant="outline"
+              className="flex items-center gap-2"
+            >
+              <Database className="w-4 h-4" />
+              导入题库
+            </Button>
           </div>
 
           {/* 模式选择卡片 */}
@@ -319,6 +339,13 @@ export default function Home() {
             </Card>
           </div>
         </div>
+
+        {/* 导入题库对话框 */}
+        <ImportQuestions
+          isOpen={showImportDialog}
+          onClose={() => setShowImportDialog(false)}
+          onImportSuccess={handleImportSuccess}
+        />
       </div>
     );
   }
