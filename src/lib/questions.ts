@@ -1,7 +1,6 @@
 // 题库数据类型定义
 export interface Question {
   id: string;
-  type?: QuestionType; // 题目类型（可选）
   question: string;
   options: string[];
   answer: number; // 正确答案的索引（0-3）
@@ -2611,6 +2610,20 @@ export const poetryQuestions: Question[] = [
   }
 ];
 
+// 根据题型获取题目
+export function getQuestionsByType(type: QuestionType, count: number = 10): Question[] {
+  switch (type) {
+    case 'wenyan':
+      return shuffleArray([...wenyanQuestions]).slice(0, count);
+    case 'idiom':
+      return shuffleArray([...idiomQuestions]).slice(0, count);
+    case 'poetry':
+      return shuffleArray([...poetryQuestions]).slice(0, count);
+    default:
+      return [];
+  }
+}
+
 // 随机打乱数组
 export function shuffleArray<T>(array: T[]): T[] {
   const newArray = [...array];
@@ -4922,80 +4935,5 @@ export function getJudgeQuestionByLevel(level: number): JudgeQuestion {
 // 获取判断题总数
 export function getJudgeQuestionCount(): number {
   return judgeQuestions.length;
-}
-
-// ==================== 自定义题库导入相关 ====================
-
-const CUSTOM_QUESTIONS_KEY = 'custom-questions';
-
-// 获取自定义题库
-export function getCustomQuestions(): (Question | JudgeQuestion)[] {
-  if (typeof window === 'undefined') return [];
-  try {
-    const saved = localStorage.getItem(CUSTOM_QUESTIONS_KEY);
-    return saved ? JSON.parse(saved) : [];
-  } catch {
-    return [];
-  }
-}
-
-// 清除自定义题库
-export function clearCustomQuestions(): void {
-  if (typeof window !== 'undefined') {
-    localStorage.removeItem(CUSTOM_QUESTIONS_KEY);
-  }
-}
-
-// 获取选择题（包含系统题库和自定义题库）
-export function getQuestionsByType(type: QuestionType, count: number = 10): Question[] {
-  let questions: Question[] = [];
-
-  // 从系统题库获取
-  switch (type) {
-    case 'wenyan':
-      questions = [...wenyanQuestions];
-      break;
-    case 'idiom':
-      questions = [...idiomQuestions];
-      break;
-    case 'poetry':
-      questions = [...poetryQuestions];
-      break;
-  }
-
-  // 添加自定义选择题
-  const customQuestions = getCustomQuestions().filter(q => 
-    'options' in q && (q as Question).type === type
-  ) as Question[];
-  
-  questions = [...questions, ...customQuestions];
-
-  // 打乱并返回指定数量
-  return shuffleArray(questions).slice(0, count);
-}
-
-// 获取判断题（包含系统题库和自定义题库）
-export function getAllJudgeQuestions(): JudgeQuestion[] {
-  const customJudgeQuestions = getCustomQuestions().filter(q => 
-    'answer' in q && typeof (q as JudgeQuestion).answer === 'boolean'
-  ) as JudgeQuestion[];
-  
-  return [...judgeQuestions, ...customJudgeQuestions];
-}
-
-// 重写 getJudgeQuestionByLevel 以包含自定义题库
-export function getJudgeQuestionByLevelWithCustom(level: number): JudgeQuestion {
-  const difficulty = Math.min(Math.max(level, 1), 10);
-  
-  // 从所有判断题（系统+自定义）中筛选
-  const allQuestions = getAllJudgeQuestions();
-  const questions = allQuestions.filter(q => q.difficulty === difficulty);
-  
-  if (questions.length === 0) {
-    const shuffled = shuffleArray(allQuestions);
-    return shuffled[0] || judgeQuestions[0];
-  }
-  
-  return shuffleArray(questions)[0];
 }
 
