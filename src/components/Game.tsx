@@ -68,6 +68,14 @@ interface GameProps {
   onBack: () => void;
 }
 
+// 导入的题目接口
+interface ImportedQuestion {
+  question: string;
+  options: string[];
+  answer: number;
+  explanation: string;
+}
+
 // 答题记录接口
 interface AnswerRecord {
   question: Question;
@@ -246,10 +254,18 @@ export default function Game({ gameMode, questionType, onBack }: GameProps) {
     return { questions, player1Questions, player2Questions };
   };
   
-  const [questionsData] = useState(generateQuestions);
+  const [questionsData, setQuestionsData] = useState(generateQuestions);
   const [timeLeft, setTimeLeft] = useState(gameMode === 'multi' ? 40 : 0); // 双人模式40秒
   const [gameEnded, setGameEnded] = useState(false);
   const [showResult, setShowResult] = useState(false);
+
+  // 导入题目相关状态
+  const [importedQuestions, setImportedQuestions] = useState<ImportedQuestion[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [useImported, setUseImported] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [textContent, setTextContent] = useState(''); // 文本内容输入
 
   // 单人模式状态
   const [playerState, setPlayerState] = useState<PlayerState>({
@@ -880,6 +896,96 @@ export default function Game({ gameMode, questionType, onBack }: GameProps) {
     };
   }, [gameMode, timeLeft, gameEnded, showCountdown, gameStarted]);
 
+  // 文件上传和解析处理
+  const handleFileUpload = async (file: File) => {
+    setIsUploading(true);
+    setUploadError(null);
+
+    try {
+      const fileExtension = file.name.split('.').pop()?.toLowerCase();
+
+      if (fileExtension === 'pdf') {
+        // 使用pdf技能解析PDF文件
+        // TODO: 集成PDF解析功能
+        setUploadError('PDF解析功能正在开发中，请先使用文本内容');
+      } else if (fileExtension === 'doc' || fileExtension === 'docx') {
+        // 使用xlsx技能解析Word文件
+        // TODO: 集成Word解析功能
+        setUploadError('Word解析功能正在开发中，请先使用文本内容');
+      } else {
+        setUploadError('不支持的文件格式，请上传PDF或Word文件');
+      }
+    } catch (error) {
+      console.error('文件解析失败:', error);
+      setUploadError('文件解析失败，请重试');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  // 从文本生成题目
+  const generateQuestionsFromText = async (text: string) => {
+    setIsGenerating(true);
+
+    try {
+      // 使用LLM技能生成题目
+      // TODO: 集成LLM生成功能
+      // 暂时使用模拟数据
+      const mockQuestions: ImportedQuestion[] = [
+        {
+          question: "以下哪个词语形容人胸怀宽广、气度非凡？",
+          options: ["海阔天空", "心胸宽广", "度量宏大", "虚怀若谷"],
+          answer: 0,
+          explanation: "海阔天空形容像大海一样辽阔，像天空一样无边无际。比喻心胸开阔，没有拘束。"
+        },
+        {
+          question: "\"沉鱼落雁\"形容的是谁的美貌？",
+          options: ["西施", "王昭君", "貂蝉", "杨玉环"],
+          answer: 0,
+          explanation: "沉鱼落雁中的沉鱼指西施，落雁指王昭君。西施浣纱时鱼儿看见她的倒影忘记了游水，渐渐沉到河底。"
+        }
+      ];
+
+      setImportedQuestions(mockQuestions);
+      setUseImported(true);
+    } catch (error) {
+      console.error('题目生成失败:', error);
+      setUploadError('题目生成失败，请重试');
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  // 应用导入的题目
+  const applyImportedQuestions = () => {
+    if (importedQuestions.length === 0) return;
+
+    const questions = importedQuestions.map((q, index) => ({
+      id: `imported-${index}`,
+      question: q.question,
+      options: q.options,
+      answer: q.answer,
+      explanation: q.explanation,
+      type: questionType,
+    }));
+
+    const player1Questions = shuffleArray([...questions]);
+    const player2Questions = shuffleArray([...questions]);
+
+    let attempts = 0;
+    let finalPlayer2Questions = player2Questions;
+    while (
+      attempts < 100 &&
+      finalPlayer2Questions.every((q, i) => q.id === player1Questions[i]?.id)
+    ) {
+      finalPlayer2Questions = shuffleArray([...questions]);
+      attempts++;
+    }
+
+    setQuestionsData({ questions, player1Questions, player2Questions });
+    setUseImported(true);
+  };
+
   // 单人模式处理函数
   const handleSingleAnswer = (answerIndex: number) => {
     if (playerState.isAnswered) return;
@@ -1160,6 +1266,120 @@ export default function Game({ gameMode, questionType, onBack }: GameProps) {
               </Button>
             </CardContent>
           </Card>
+
+          {/* 文件导入面板 */}
+          {gameMode === 'multi' && (
+            <Card className="max-w-2xl w-full">
+              <CardHeader>
+                <CardTitle className="text-xl text-center flex items-center justify-center gap-2">
+                  📚 导入题目
+                </CardTitle>
+                <CardDescription className="text-center">
+                  粘贴文本内容或上传文件，自动生成PK对战题目
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* 文本输入区域 */}
+                <div>
+                  <label className="block text-sm font-medium mb-2">或直接粘贴文本内容</label>
+                  <textarea
+                    value={textContent}
+                    onChange={(e) => setTextContent(e.target.value)}
+                    placeholder="在此粘贴语文知识点、课文内容或相关材料..."
+                    className="w-full h-32 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white resize-none"
+                  />
+                  <Button
+                    onClick={() => {
+                      if (textContent.trim()) {
+                        generateQuestionsFromText(textContent);
+                      } else {
+                        setUploadError('请输入文本内容');
+                      }
+                    }}
+                    disabled={isGenerating}
+                    className="mt-2 w-full"
+                    size="sm"
+                  >
+                    {isGenerating ? '正在生成...' : '生成题目'}
+                  </Button>
+                </div>
+
+                <div className="text-center text-sm text-gray-500 dark:text-gray-400">或</div>
+
+                {/* 文件上传区域 */}
+                <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 text-center hover:border-blue-500 dark:hover:border-blue-400 transition-colors">
+                  <input
+                    type="file"
+                    id="file-upload"
+                    accept=".pdf,.doc,.docx,.txt"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        const reader = new FileReader();
+                        reader.onload = (event) => {
+                          const text = event.target?.result as string;
+                          setTextContent(text);
+                          generateQuestionsFromText(text);
+                        };
+                        reader.readAsText(file);
+                      }
+                    }}
+                    className="hidden"
+                    disabled={isUploading || isGenerating}
+                  />
+                  <label
+                    htmlFor="file-upload"
+                    className="cursor-pointer flex flex-col items-center"
+                  >
+                    <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center mb-3">
+                      <svg className="w-8 h-8 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                      </svg>
+                    </div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
+                      {isUploading ? '正在解析文件...' : isGenerating ? '正在生成题目...' : '点击或拖拽文件到此处'}
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-500">支持 PDF、Word、TXT 格式</p>
+                  </label>
+                </div>
+
+                {/* 上传状态 */}
+                {uploadError && (
+                  <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                    <p className="text-sm text-red-700 dark:text-red-300 flex items-center gap-2">
+                      <AlertTriangle className="w-4 h-4" />
+                      {uploadError}
+                    </p>
+                  </div>
+                )}
+
+                {importedQuestions.length > 0 && (
+                  <div className="p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+                    <p className="text-sm text-green-700 dark:text-green-300 mb-2">
+                      ✓ 已生成 {importedQuestions.length} 道题目
+                    </p>
+                    {!useImported && (
+                      <Button
+                        onClick={applyImportedQuestions}
+                        className="w-full"
+                        size="sm"
+                      >
+                        使用导入的题目
+                      </Button>
+                    )}
+                  </div>
+                )}
+
+                {useImported && (
+                  <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                    <p className="text-sm text-blue-700 dark:text-blue-300">
+                      ✓ 已使用导入的题目
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
         </div>
 
         {/* 抽签界面 */}
