@@ -7,7 +7,7 @@ import { Progress } from '@/components/ui/progress';
 import { getQuestionsByType, Question, QuestionType, shuffleArray, JudgeQuestion, getJudgeQuestionByLevel, addWrongQuestion, WrongQuestionRecord, getWrongQuestions, clearWrongQuestions, removeWrongQuestion } from '@/lib/questions';
 import { ArrowLeft, CheckCircle, XCircle, Clock, Trophy, RotateCcw, Crown, Shuffle, Plus, Trash2, Users, BookX, AlertTriangle, X } from 'lucide-react';
 
-// 火焰动画样式
+// 火焰动画样式和科技感动画样式
 const fireAnimations = `
   @keyframes fire-pulse {
     0%, 100% {
@@ -38,6 +38,16 @@ const fireAnimations = `
     50% {
       transform: scale(1.2);
     }
+  }
+
+  @keyframes gridMove {
+    0% { transform: translate(0, 0); }
+    100% { transform: translate(50px, 50px); }
+  }
+  
+  @keyframes scanlines {
+    0% { transform: translateY(0); }
+    100% { transform: translateY(50px); }
   }
 `;
 
@@ -1910,71 +1920,119 @@ export default function Game({ gameMode, questionType, onBack }: GameProps) {
   // 双人PK模式界面
   if (gameMode === 'multi') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-zinc-50 dark:from-gray-900 dark:via-slate-900 dark:to-zinc-900 p-6">
-        {/* 顶部信息栏 */}
-        <div className="max-w-7xl mx-auto mb-8">
-          <div className="flex items-center justify-between bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl p-4 shadow-sm border border-gray-200 dark:border-gray-700">
-            <Button onClick={onBack} variant="ghost" size="sm">
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              返回
-            </Button>
+      <div className="min-h-screen relative overflow-hidden">
+        {/* 科技感背景 */}
+        <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-blue-900 to-purple-900">
+          {/* 网格效果 */}
+          <div className="absolute inset-0 opacity-20" style={{
+            backgroundImage: `
+              linear-gradient(rgba(100, 150, 255, 0.1) 1px, transparent 1px),
+              linear-gradient(90deg, rgba(100, 150, 255, 0.1) 1px, transparent 1px)
+            `,
+            backgroundSize: '50px 50px',
+            animation: 'gridMove 20s linear infinite'
+          }} />
+          {/* 动态光晕 */}
+          <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-500/20 rounded-full blur-3xl animate-pulse" />
+          <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-purple-500/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }} />
+        </div>
 
-            <div className="flex items-center gap-6">
-              <div className="text-center">
-                <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">剩余时间</p>
-                <div className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-xl shadow-lg">
-                  <Clock className="w-5 h-5" />
-                  <span className="font-bold text-2xl">
-                    {Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')}
-                  </span>
+        {/* 扫描线效果 */}
+        <div className="absolute inset-0 pointer-events-none overflow-hidden">
+          <div className="absolute inset-0 opacity-5" style={{
+            background: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0, 255, 255, 0.1) 3px)',
+            animation: 'scanlines 8s linear infinite'
+          }} />
+        </div>
+
+        {/* 内容区域 */}
+        <div className="relative z-10 p-6">
+          {/* 顶部信息栏 */}
+          <div className="max-w-7xl mx-auto mb-8">
+            <div className="flex items-center justify-between bg-black/40 backdrop-blur-xl rounded-2xl p-4 shadow-2xl border border-cyan-500/30">
+              <Button onClick={onBack} variant="ghost" size="sm" className="text-cyan-400 hover:text-cyan-300 hover:bg-cyan-500/10">
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                返回
+              </Button>
+
+              <div className="flex items-center gap-6">
+                <div className="text-center">
+                  <p className="text-xs text-cyan-400/70 mb-1 tracking-wider">TIME REMAINING</p>
+                  <div className="flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-cyan-500 via-blue-500 to-purple-500 text-white rounded-xl shadow-2xl border border-cyan-400/50">
+                    <Clock className="w-6 h-6" />
+                    <span className="font-bold text-3xl tracking-widest">
+                      {Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')}
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
 
-        {/* PK对战标题 */}
-        <div className="max-w-7xl mx-auto text-center mb-12">
-          <h2 className="text-4xl font-bold text-gray-800 dark:text-white mb-3">
-            双人对战
-          </h2>
-          <div className="inline-flex items-center gap-2 px-6 py-2 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-full text-sm font-medium">
-            <span>{getQuestionTypeName(questionType)}</span>
-          </div>
-        </div>
-
-        {/* 双人答题区域 */}
-        <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-8">
-          {/* 玩家1区域 */}
-          <PlayerArea
-            playerName={player1Name}
-            playerColor="blue"
-            questions={questionsData.player1Questions}
-            playerState={player1State}
-            onAnswer={(answer) => handleMultiAnswer(1, answer)}
-            onNext={() => {}}
-            questionType={questionType}
-            showExplanationAndNextButton={false}
-          />
-
-          {/* VS分隔符 */}
-          <div className="hidden md:flex absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 z-10">
-            <div className="bg-gradient-to-br from-purple-600 to-pink-600 text-white font-bold text-3xl px-6 py-3 rounded-full shadow-2xl">
-              VS
+          {/* PK对战标题 */}
+          <div className="max-w-7xl mx-auto text-center mb-12">
+            <div className="relative inline-block">
+              {/* 标题光效 */}
+              <div className="absolute -inset-4 bg-gradient-to-r from-cyan-500 via-blue-500 to-purple-500 rounded-2xl blur-xl opacity-30 animate-pulse" />
+              <h2 className="relative text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-blue-400 to-purple-400 mb-3 tracking-tight">
+                双人对战
+              </h2>
+            </div>
+            <div className="inline-flex items-center gap-2 px-6 py-3 bg-black/50 backdrop-blur-sm border border-purple-500/50 text-purple-300 rounded-lg text-sm font-medium tracking-wide shadow-lg">
+              <span className="w-2 h-2 bg-purple-400 rounded-full animate-pulse" />
+              <span>{getQuestionTypeName(questionType)}</span>
+              <span className="w-2 h-2 bg-purple-400 rounded-full animate-pulse" />
             </div>
           </div>
 
-          {/* 玩家2区域 */}
-          <PlayerArea
-            playerName={player2Name}
-            playerColor="pink"
-            questions={questionsData.player2Questions}
-            playerState={player2State}
-            onAnswer={(answer) => handleMultiAnswer(2, answer)}
-            onNext={() => {}}
-            questionType={questionType}
-            showExplanationAndNextButton={false}
-          />
+          {/* 双人答题区域 */}
+          <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-8">
+            {/* 玩家1区域 */}
+            <div className="relative">
+              {/* 科技感边框 */}
+              <div className="absolute -inset-1 bg-gradient-to-r from-cyan-500/50 to-blue-500/50 rounded-2xl blur-xl opacity-50" />
+              <div className="relative bg-black/60 backdrop-blur-xl rounded-2xl p-6 border border-cyan-500/30 shadow-2xl">
+                <PlayerArea
+                  playerName={player1Name}
+                  playerColor="blue"
+                  questions={questionsData.player1Questions}
+                  playerState={player1State}
+                  onAnswer={(answer) => handleMultiAnswer(1, answer)}
+                  onNext={() => {}}
+                  questionType={questionType}
+                  showExplanationAndNextButton={false}
+                />
+              </div>
+            </div>
+
+            {/* VS分隔符 */}
+            <div className="hidden md:flex absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 z-10">
+              <div className="relative">
+                <div className="absolute -inset-2 bg-gradient-to-r from-cyan-500 via-purple-500 to-pink-500 rounded-full blur-2xl opacity-50 animate-pulse" />
+                <div className="relative bg-black/80 backdrop-blur-xl text-white font-black text-4xl px-8 py-4 rounded-full border-2 border-purple-500/50 shadow-2xl">
+                  VS
+                </div>
+              </div>
+            </div>
+
+            {/* 玩家2区域 */}
+            <div className="relative">
+              {/* 科技感边框 */}
+              <div className="absolute -inset-1 bg-gradient-to-r from-pink-500/50 to-purple-500/50 rounded-2xl blur-xl opacity-50" />
+              <div className="relative bg-black/60 backdrop-blur-xl rounded-2xl p-6 border border-pink-500/30 shadow-2xl">
+                <PlayerArea
+                  playerName={player2Name}
+                  playerColor="pink"
+                  questions={questionsData.player2Questions}
+                  playerState={player2State}
+                  onAnswer={(answer) => handleMultiAnswer(2, answer)}
+                  onNext={() => {}}
+                  questionType={questionType}
+                  showExplanationAndNextButton={false}
+                />
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     );
