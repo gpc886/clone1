@@ -926,6 +926,7 @@ export default function Game({ gameMode, questionType, onBack }: GameProps) {
   // 从文本生成题目
   const generateQuestionsFromText = async (text: string) => {
     setIsGenerating(true);
+    console.log("📝 开始生成题目，文本长度：", text.length);
 
     try {
       // 使用LLM技能生成题目
@@ -947,6 +948,7 @@ export default function Game({ gameMode, questionType, onBack }: GameProps) {
       ];
 
       setImportedQuestions(mockQuestions);
+      console.log("✅ 题目生成完成：", mockQuestions.length, "道");
       setUseImported(true);
     } catch (error) {
       console.error('题目生成失败:', error);
@@ -982,8 +984,42 @@ export default function Game({ gameMode, questionType, onBack }: GameProps) {
       attempts++;
     }
 
+    // 应用导入的题目并重置游戏状态
     setQuestionsData({ questions, player1Questions, player2Questions });
     setUseImported(true);
+
+    console.log('✅ 已应用导入题目：', {
+      总题目数: questions.length,
+      玩家1题目数: player1Questions.length,
+      玩家2题目数: player2Questions.length,
+      第一道题: questions[0]?.question
+    });
+
+    // 重置玩家状态
+    setPlayer1State({
+      currentQuestionIndex: 0,
+      selectedAnswer: null,
+      isAnswered: false,
+      score: 0,
+      showExplanation: false,
+      answerRecords: [],
+    });
+
+    setPlayer2State({
+      currentQuestionIndex: 0,
+      selectedAnswer: null,
+      isAnswered: false,
+      score: 0,
+      showExplanation: false,
+      answerRecords: [],
+    });
+
+    // 重置游戏状态
+    setGameEnded(false);
+    setShowResult(false);
+
+    // 显示成功提示
+    alert(`已成功应用 ${questions.length} 道导入的题目！\n现在可以开始游戏了。`);
   };
 
   // 单人模式处理函数
@@ -1371,10 +1407,46 @@ export default function Game({ gameMode, questionType, onBack }: GameProps) {
                 )}
 
                 {useImported && (
-                  <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                  <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg space-y-2">
                     <p className="text-sm text-blue-700 dark:text-blue-300">
                       ✓ 已使用导入的题目
                     </p>
+                    <Button
+                      onClick={() => {
+                        // 恢复默认题目
+                        const defaultQuestions = generateQuestions();
+                        setQuestionsData(defaultQuestions);
+                        setUseImported(false);
+                        setImportedQuestions([]);
+
+                        // 重置玩家状态
+                        setPlayer1State({
+                          currentQuestionIndex: 0,
+                          selectedAnswer: null,
+                          isAnswered: false,
+                          score: 0,
+                          showExplanation: false,
+                          answerRecords: [],
+                        });
+
+                        setPlayer2State({
+                          currentQuestionIndex: 0,
+                          selectedAnswer: null,
+                          isAnswered: false,
+                          score: 0,
+                          showExplanation: false,
+                          answerRecords: [],
+                        });
+
+                        setGameEnded(false);
+                        setShowResult(false);
+                      }}
+                      variant="outline"
+                      size="sm"
+                      className="w-full"
+                    >
+                      恢复默认题目
+                    </Button>
                   </div>
                 )}
               </CardContent>
@@ -2198,10 +2270,18 @@ export default function Game({ gameMode, questionType, onBack }: GameProps) {
                 双人对战
               </h2>
             </div>
-            <div className="inline-flex items-center gap-2 px-6 py-3 bg-black/50 backdrop-blur-sm border border-purple-500/50 text-purple-300 rounded-lg text-sm font-medium tracking-wide shadow-lg">
-              <span className="w-2 h-2 bg-purple-400 rounded-full animate-pulse" />
-              <span>{getQuestionTypeName(questionType)}</span>
-              <span className="w-2 h-2 bg-purple-400 rounded-full animate-pulse" />
+            <div className="flex items-center justify-center gap-3 flex-wrap">
+              <div className="inline-flex items-center gap-2 px-6 py-3 bg-black/50 backdrop-blur-sm border border-purple-500/50 text-purple-300 rounded-lg text-sm font-medium tracking-wide shadow-lg">
+                <span className="w-2 h-2 bg-purple-400 rounded-full animate-pulse" />
+                <span>{getQuestionTypeName(questionType)}</span>
+                <span className="w-2 h-2 bg-purple-400 rounded-full animate-pulse" />
+              </div>
+              {useImported && (
+                <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-500/20 backdrop-blur-sm border border-green-500/50 text-green-300 rounded-lg text-xs font-medium tracking-wide shadow-lg">
+                  <span>📚</span>
+                  <span>使用导入题目 ({questionsData.player1Questions.length}道)</span>
+                </div>
+              )}
             </div>
           </div>
 
